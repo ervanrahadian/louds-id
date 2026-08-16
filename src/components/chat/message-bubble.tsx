@@ -99,7 +99,7 @@ export function MessageBubble({
         >
           <p
             className={cn(
-              "whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
+              "whitespace-pre-wrap wrap-break-word rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
               onDelete ? "cursor-pointer" : null,
               isOwn
                 ? "rounded-br-md bg-brand-700 text-white"
