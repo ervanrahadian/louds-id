@@ -5,7 +5,7 @@ export function SiteFooter() {
 
   return (
     <footer className="bg-brand-950 text-white">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-2 px-5 py-8 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-5 py-8 text-center sm:justify-start sm:text-left">
         <p className="text-sm text-white/70">
           Copyright &copy; {year} —{" "}
           <a
@@ -15,7 +15,6 @@ export function SiteFooter() {
             {siteConfig.name}
           </a>
         </p>
-        <p className="text-sm text-white/55">{siteConfig.tagline}</p>
       </div>
     </footer>
   );

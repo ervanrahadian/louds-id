@@ -1,8 +1,6 @@
 export const siteConfig = {
   name: "Louds.id",
-  tagline: "Connect, share, and grow together.",
-  description:
-    "Connect, share, and grow together. Join groups, search conversations, and talk instantly.",
+  tagline: "Connect, share, and grow together",
   url: "https://loudsid.web.app",
   author: "Ervan Rahadian",
   authorUrl: "https://ervanrahadian.web.app",

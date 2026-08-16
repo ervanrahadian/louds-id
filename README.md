@@ -1,8 +1,8 @@
-# Louds.id — Connect, share, and grow together.
+# Louds.id: Connect, share, and grow together
 
 Live site: [loudsid.web.app](https://loudsid.web.app)
 
-Connect, share, and grow together. Join groups, search conversations, and talk instantly.
+Public group chat. Join a group and talk instantly.
 
 ## Tech stack
 
