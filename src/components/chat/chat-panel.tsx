@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HiChevronLeft, HiPencilSquare, HiTrash } from "react-icons/hi2";
 
@@ -39,9 +39,12 @@ export function ChatPanel({
   onRenameChat,
   onDeleteChat,
 }: ChatPanelProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
+
+  useEffect(() => {
+    stickToBottom.current = true;
+  }, [chat?.id]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -50,19 +53,19 @@ export function ChatPanel({
     }
 
     const onScroll = () => {
-      stickToBottom.current =
-        el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+      stickToBottom.current = el.scrollTop <= 96;
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, [chat?.id]);
 
-  useEffect(() => {
-    if (!stickToBottom.current) {
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || !stickToBottom.current) {
       return;
     }
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    el.scrollTop = 0;
   }, [messages]);
 
   if (!chat) {
@@ -125,7 +128,7 @@ export function ChatPanel({
 
       <div
         ref={scrollerRef}
-        className="chat-scroll min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6"
+        className="chat-scroll flex min-h-0 flex-1 flex-col-reverse overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
       >
         {loading && messages.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-500">
@@ -136,9 +139,11 @@ export function ChatPanel({
             {error}
           </p>
         ) : messages.length === 0 ? (
-          <EmptyChat variant="thread" />
+          <div className="flex min-h-full items-center justify-center">
+            <EmptyChat variant="thread" />
+          </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex w-full flex-col gap-3">
             <AnimatePresence initial={false}>
               {messages.map((message, index) => {
                 const previous = messages[index - 1];
@@ -179,7 +184,6 @@ export function ChatPanel({
                 );
               })}
             </AnimatePresence>
-            <div ref={bottomRef} />
           </div>
         )}
       </div>

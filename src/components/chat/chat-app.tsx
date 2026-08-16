@@ -40,6 +40,15 @@ export function ChatApp({ user }: { user: AppUser }) {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(readStoredChatId);
 
+  useEffect(() => {
+    const previous = history.scrollRestoration;
+    history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    return () => {
+      history.scrollRestoration = previous;
+    };
+  }, []);
+
   const rooms = useMemo(
     () =>
       chats.map((chat) =>
@@ -119,7 +128,7 @@ export function ChatApp({ user }: { user: AppUser }) {
   const showChat = isDesktop || Boolean(activeChatId);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-surface">
+    <div className="fixed inset-0 flex overflow-hidden bg-surface">
       {showSidebar ? (
         <ChatSidebar
           user={user}

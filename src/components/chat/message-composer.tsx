@@ -52,7 +52,7 @@ export function MessageComposer({ disabled, onSend }: MessageComposerProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-end gap-2 border-t border-slate-200 bg-white px-3 py-3 sm:px-5"
+      className="flex shrink-0 items-end gap-2 border-t border-slate-200 bg-white px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 sm:pb-3"
     >
       <label className="sr-only" htmlFor="message-input">
         Message
