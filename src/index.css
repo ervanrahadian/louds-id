@@ -1,17 +1,93 @@
-* {
-  margin: 0;
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #dce0ff;
+  --color-brand-200: #bcc3ff;
+  --color-brand-300: #949dff;
+  --color-brand-400: #6f75ff;
+  --color-brand-500: #4f4ef5;
+  --color-brand-600: #3c34dd;
+  --color-brand-700: #2f28b4;
+  --color-brand-800: #232093;
+  --color-brand-900: #14148c;
+  --color-brand-950: #0b0a4d;
+
+  --color-accent-300: #7ddcff;
+  --color-accent-400: #38c9ff;
+  --color-accent-500: #00b4ff;
+  --color-accent-600: #0090d6;
+
+  --color-surface: #f4f8ff;
+
+  --shadow-elevated: 0 10px 20px rgb(0 0 0 / 0.18), 0 4px 8px rgb(0 0 0 / 0.12);
+
+  --animate-aurora: aurora 4s ease-in-out infinite alternate;
+
+  @keyframes aurora {
+    from {
+      background-position: 0% 50%;
+    }
+    to {
+      background-position: 100% 50%;
+    }
+  }
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-surface);
+    color: var(--color-slate-800);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-500);
+    color: white;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+@layer components {
+  .chat-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-200) transparent;
+  }
+
+  .chat-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .chat-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--color-brand-200);
+    border-radius: 999px;
+  }
 }

@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function isOwner() {
+      return signedIn() && userEmail() == 'ervanrahadian@gmail.com';
+    }
+
+    function extraAdmins() {
+      return exists(/databases/$(database)/documents/settings/admins)
+        ? get(/databases/$(database)/documents/settings/admins).data.get('emails', [])
+        : [];
+    }
+
+    function isAdmin() {
+      return isOwner() || userEmail() in extraAdmins();
+    }
+
+    match /settings/admins {
+      allow read: if signedIn();
+      allow write: if isOwner();
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      allow update: if signedIn() && (
+        isAdmin()
+        || (
+          request.resource.data.chatName == resource.data.chatName
+          && request.resource.data.get('icon', '') == resource.data.get('icon', '')
+        )
+      );
+
+      match /messages/{messageId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.uid == request.auth.uid;
+        allow update: if false;
+        allow delete: if signedIn() && (
+          resource.data.uid == request.auth.uid
+          || resource.data.email == request.auth.token.email
+          || isAdmin()
+        );
+      }
+    }
+  }
+}
