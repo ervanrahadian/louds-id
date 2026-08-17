@@ -1,21 +1,14 @@
 import type { Timestamp } from "firebase/firestore";
 
-const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-const timeFormat = new Intl.DateTimeFormat("en", {
-  hour: "numeric",
-  minute: "2-digit",
-});
-const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
+const dateLabelFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 
-const DIVISIONS: { amount: number; unit: Intl.RelativeTimeFormatUnit }[] = [
-  { amount: 60, unit: "second" },
-  { amount: 60, unit: "minute" },
-  { amount: 24, unit: "hour" },
-  { amount: 7, unit: "day" },
-  { amount: 4.34524, unit: "week" },
-  { amount: 12, unit: "month" },
-  { amount: Number.POSITIVE_INFINITY, unit: "year" },
-];
+function pad(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function startOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
 
 /** Converts a Firestore timestamp-like value to a Date. */
 export function toDate(value: unknown): Date | null {
@@ -38,34 +31,33 @@ export function toDate(value: unknown): Date | null {
   return null;
 }
 
-/** Compact relative time for sidebar previews. */
-export function formatRelativeTime(date: Date | null | undefined): string {
-  if (!date) {
-    return "";
+export function isSameDay(
+  left: Date | null | undefined,
+  right: Date | null | undefined,
+): boolean {
+  if (!left || !right) {
+    return false;
   }
-
-  let duration = (date.getTime() - Date.now()) / 1000;
-
-  for (const division of DIVISIONS) {
-    if (Math.abs(duration) < division.amount) {
-      return relative.format(Math.round(duration), division.unit);
-    }
-    duration /= division.amount;
-  }
-
-  return "";
+  return startOfDay(left) === startOfDay(right);
 }
 
-/** Clock time for message bubbles. */
+/** 24-hour clock time, e.g. 14.00 */
 export function formatTime(date: Date | null | undefined): string {
   if (!date) {
     return "";
   }
-  return timeFormat.format(date);
+  return `${pad(date.getHours())}.${pad(date.getMinutes())}`;
 }
 
-function startOfDay(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+/** Sidebar preview: time today, otherwise DD/MM/YY. */
+export function formatListTime(date: Date | null | undefined): string {
+  if (!date) {
+    return "";
+  }
+  if (isSameDay(date, new Date())) {
+    return formatTime(date);
+  }
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${pad(date.getFullYear() % 100)}`;
 }
 
 /** Day label used as a separator in the transcript. */
@@ -80,15 +72,5 @@ export function formatDateLabel(date: Date): string {
   if (target === today - dayMs) {
     return "Yesterday";
   }
-  return dateFormat.format(date);
-}
-
-export function isSameDay(
-  left: Date | null | undefined,
-  right: Date | null | undefined,
-): boolean {
-  if (!left || !right) {
-    return false;
-  }
-  return startOfDay(left) === startOfDay(right);
+  return dateLabelFormat.format(date);
 }

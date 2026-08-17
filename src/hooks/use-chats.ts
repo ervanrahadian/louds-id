@@ -40,6 +40,8 @@ async function mapChat(
       typeof data.lastMessagePhoto === "string" ? data.lastMessagePhoto : null,
     lastMessageName:
       typeof data.lastMessageName === "string" ? data.lastMessageName : null,
+    lastMessageUid:
+      typeof data.lastMessageUid === "string" ? data.lastMessageUid : null,
     createdBy: typeof data.createdBy === "string" ? data.createdBy : undefined,
     createdByName:
       typeof data.createdByName === "string" ? data.createdByName : undefined,
@@ -164,13 +166,9 @@ export function filterChats(chats: ChatRoom[], queryText: string): ChatRoom[] {
     return chats;
   }
 
-  return chats.filter((chat) => {
-    const haystack = [chat.chatName, chat.lastMessage, chat.lastMessageName]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(needle);
-  });
+  return chats.filter((chat) =>
+    chat.chatName.toLowerCase().includes(needle),
+  );
 }
 
 /** Fetches a one-off last message for groups that predate denormalized previews. */
@@ -216,6 +214,8 @@ export function useLegacyLastMessages(chats: ChatRoom[]) {
                 typeof data.photo === "string" ? data.photo : null,
               lastMessageName:
                 typeof data.displayName === "string" ? data.displayName : null,
+              lastMessageUid:
+                typeof data.uid === "string" ? data.uid : null,
             },
           }));
         });

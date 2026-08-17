@@ -12,6 +12,7 @@ interface ChatSidebarProps {
   error: string | null;
   search: string;
   selectedId: string | null;
+  unreadIds: Set<string>;
   canCreate: boolean;
   onSearch: (value: string) => void;
   onSelect: (id: string) => void;
@@ -27,6 +28,7 @@ export function ChatSidebar({
   error,
   search,
   selectedId,
+  unreadIds,
   canCreate,
   onSearch,
   onSelect,
@@ -35,7 +37,7 @@ export function ChatSidebar({
   onManageAdmins,
 }: ChatSidebarProps) {
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-r border-slate-200 bg-white md:max-w-80 md:min-w-72">
+    <aside className="flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col border-r border-slate-200 bg-white md:max-w-80 md:min-w-72">
       <div className="flex items-center gap-3 px-4 py-4">
         <ProfileMenu
           user={user}
@@ -108,6 +110,7 @@ export function ChatSidebar({
                 <ChatListItem
                   chat={chat}
                   active={chat.id === selectedId}
+                  unread={unreadIds.has(chat.id)}
                   onSelect={() => onSelect(chat.id)}
                 />
               </li>

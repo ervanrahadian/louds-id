@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { HiTrash } from "react-icons/hi2";
+import { HiArrowUturnLeft, HiPencilSquare, HiTrash } from "react-icons/hi2";
 
 import { Avatar } from "@/components/ui/avatar";
-import { parseMessageParts } from "@/lib/message";
+import { messageSnippet, parseMessageParts } from "@/lib/message";
 import { formatTime } from "@/lib/time";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -11,18 +11,27 @@ interface MessageBubbleProps {
   message: ChatMessage;
   isOwn: boolean;
   showMeta: boolean;
+  highlighted?: boolean;
+  onReply: () => void;
+  onEdit?: () => void;
   onDelete?: () => void;
+  onOpenReply?: () => void;
 }
 
 export function MessageBubble({
   message,
   isOwn,
   showMeta,
+  highlighted = false,
+  onReply,
+  onEdit,
   onDelete,
+  onOpenReply,
 }: MessageBubbleProps) {
   const parts = parseMessageParts(message.message);
   const rootRef = useRef<HTMLElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const quote = message.replyTo;
 
   useEffect(() => {
     if (!actionsOpen) {
@@ -41,9 +50,6 @@ export function MessageBubble({
   }, [actionsOpen]);
 
   const toggleActions = (event: MouseEvent) => {
-    if (!onDelete) {
-      return;
-    }
     if ((event.target as HTMLElement).closest("a, button")) {
       return;
     }
@@ -53,11 +59,21 @@ export function MessageBubble({
   return (
     <article
       ref={rootRef}
-      className={cn(
-        "group flex max-w-[min(100%,32rem)] flex-col",
-        isOwn ? "ml-auto items-end" : "mr-auto items-start",
-      )}
+      id={`message-${message.id}`}
+      className="relative w-full min-w-0"
     >
+      {highlighted ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-y-1 -left-3 -right-3 bg-brand-700/12 sm:-left-6 sm:-right-6"
+        />
+      ) : null}
+      <div
+        className={cn(
+          "relative flex w-fit min-w-0 max-w-full flex-col sm:max-w-[32rem]",
+          isOwn ? "ml-auto items-end" : "mr-auto items-start",
+        )}
+      >
       {showMeta ? (
         <p
           className={cn(
@@ -71,7 +87,7 @@ export function MessageBubble({
 
       <div
         className={cn(
-          "flex items-end gap-2",
+          "flex min-w-0 max-w-full items-end gap-2",
           isOwn ? "flex-row-reverse" : "flex-row",
         )}
       >
@@ -87,44 +103,72 @@ export function MessageBubble({
         </div>
 
         <div
-          className="relative min-w-0 max-w-full"
+          className="relative min-w-0 max-w-full cursor-pointer"
           onClick={toggleActions}
           onContextMenu={(event) => {
-            if (!onDelete) {
-              return;
-            }
             event.preventDefault();
             setActionsOpen(true);
           }}
         >
-          <p
+          <div
             className={cn(
-              "whitespace-pre-wrap wrap-break-word rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
-              onDelete ? "cursor-pointer" : null,
+              "min-w-0 max-w-full overflow-hidden rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
               isOwn
                 ? "rounded-br-md bg-brand-700 text-white"
                 : "rounded-bl-md bg-white text-slate-800 ring-1 ring-slate-200",
             )}
           >
-            {parts.map((part, index) =>
-              part.type === "link" ? (
-                <a
-                  key={`${part.value}-${index}`}
-                  href={part.value}
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {quote ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenReply?.();
+                }}
+                className={cn(
+                  "mb-1.5 block w-full min-w-0 overflow-hidden rounded-xl px-2.5 py-1.5 text-left",
+                  isOwn ? "bg-white/15" : "bg-brand-50",
+                )}
+              >
+                <span
                   className={cn(
-                    "font-medium underline-offset-2 hover:underline",
+                    "block truncate text-[11px] font-semibold",
                     isOwn ? "text-accent-300" : "text-brand-700",
                   )}
                 >
-                  {part.value}
-                </a>
-              ) : (
-                <span key={index}>{part.value}</span>
-              ),
-            )}
-          </p>
+                  {quote.displayName}
+                </span>
+                <span
+                  className={cn(
+                    "mt-0.5 line-clamp-2 wrap-break-word text-xs",
+                    isOwn ? "text-white/80" : "text-slate-500",
+                  )}
+                >
+                  {messageSnippet(quote.message) || "Message"}
+                </span>
+              </button>
+            ) : null}
+            <p className="whitespace-pre-wrap wrap-break-word">
+              {parts.map((part, index) =>
+                part.type === "link" ? (
+                  <a
+                    key={`${part.value}-${index}`}
+                    href={part.value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "wrap-break-word font-medium underline-offset-2 hover:underline",
+                      isOwn ? "text-accent-300" : "text-brand-700",
+                    )}
+                  >
+                    {part.value}
+                  </a>
+                ) : (
+                  <span key={index}>{part.value}</span>
+                ),
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -135,24 +179,56 @@ export function MessageBubble({
         )}
       >
         {message.timestamp ? formatTime(message.timestamp) : "Sending…"}
+        {message.editedAt ? " · edited" : ""}
       </p>
 
-      {onDelete && actionsOpen ? (
-        <button
-          type="button"
-          onClick={() => {
-            setActionsOpen(false);
-            onDelete();
-          }}
+      {actionsOpen ? (
+        <div
           className={cn(
-            "mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-xs font-semibold text-rose-600 ring-1 ring-rose-100",
-            isOwn ? "mr-11" : "ml-11",
+            "mt-1 flex max-w-full min-w-0 flex-wrap gap-1.5",
+            isOwn ? "mr-11 justify-end" : "ml-11",
           )}
         >
-          <HiTrash className="size-4" aria-hidden />
-          Delete
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActionsOpen(false);
+              onReply();
+            }}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-brand-50 px-3 text-xs font-semibold text-brand-700 ring-1 ring-brand-100"
+          >
+            <HiArrowUturnLeft className="size-4" aria-hidden />
+            Reply
+          </button>
+          {onEdit ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActionsOpen(false);
+                onEdit();
+              }}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-brand-50 px-3 text-xs font-semibold text-brand-700 ring-1 ring-brand-100"
+            >
+              <HiPencilSquare className="size-4" aria-hidden />
+              Edit
+            </button>
+          ) : null}
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActionsOpen(false);
+                onDelete();
+              }}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-xs font-semibold text-rose-600 ring-1 ring-rose-100"
+            >
+              <HiTrash className="size-4" aria-hidden />
+              Delete
+            </button>
+          ) : null}
+        </div>
       ) : null}
+      </div>
     </article>
   );
 }

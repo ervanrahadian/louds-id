@@ -21,11 +21,14 @@ Public group chat. Join a group and talk instantly.
 - Admin-only group create, icon, rename, and delete (`ervanrahadian@gmail.com`, plus emails you add)
 - Public groups with live messages
 - Message text encrypted in Firestore
-- Search groups and last messages
+- Search groups
+- Unread marks on groups with new messages
+- Jump to latest when you scroll up
 - Mobile list/detail layout and desktop split view
 - Auto-scroll, day separators, and grouped bubbles
 - Link detection in messages
-- Delete your own messages
+- Reply to a message
+- Edit or delete your own messages
 - Offline-friendly PWA shell
 
 ## Getting started

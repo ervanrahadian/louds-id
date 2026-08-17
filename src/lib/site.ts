@@ -9,3 +9,4 @@ export const siteConfig = {
 } as const;
 
 export const SELECTED_CHAT_KEY = "louds-selected-chat";
+export const CHAT_READS_KEY = "louds-chat-reads";

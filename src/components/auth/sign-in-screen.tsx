@@ -47,7 +47,7 @@ const highlights = [
   {
     icon: HiChatBubbleLeftRight,
     title: "Easy to find",
-    body: "Search groups and last messages from the sidebar.",
+    body: "Search groups from the sidebar.",
   },
 ];
 

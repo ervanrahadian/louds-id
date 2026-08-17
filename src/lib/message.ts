@@ -25,3 +25,14 @@ export function parseMessageParts(message: string): MessagePart[] {
 
   return parts.length > 0 ? parts : [{ type: "text", value: message }];
 }
+
+const REPLY_SNIPPET_LENGTH = 140;
+
+/** Short preview used when quoting a message. */
+export function messageSnippet(message: string): string {
+  const trimmed = message.trim().replace(/\s+/g, " ");
+  if (trimmed.length <= REPLY_SNIPPET_LENGTH) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, REPLY_SNIPPET_LENGTH).trimEnd()}…`;
+}

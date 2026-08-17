@@ -16,9 +16,33 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import { messageSnippet } from "@/lib/message";
 import { decryptMessage, encryptMessage } from "@/lib/message-crypto";
 import { toDate } from "@/lib/time";
-import type { AppUser, ChatMessage } from "@/lib/types";
+import type { AppUser, ChatMessage, MessageReply } from "@/lib/types";
+
+async function mapReplyTo(data: DocumentData): Promise<MessageReply | null> {
+  const raw = data.replyTo;
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const id = typeof raw.id === "string" ? raw.id : "";
+  if (!id) {
+    return null;
+  }
+
+  const encrypted =
+    typeof raw.message === "string" ? raw.message : "";
+
+  return {
+    id,
+    uid: typeof raw.uid === "string" ? raw.uid : "",
+    displayName:
+      typeof raw.displayName === "string" ? raw.displayName : "Someone",
+    message: encrypted ? await decryptMessage(encrypted) : "",
+  };
+}
 
 async function mapMessage(
   docSnap: QueryDocumentSnapshot<DocumentData>,
@@ -34,6 +58,8 @@ async function mapMessage(
     displayName:
       typeof data.displayName === "string" ? data.displayName : "Someone",
     timestamp: toDate(data.timestamp),
+    editedAt: toDate(data.editedAt),
+    replyTo: await mapReplyTo(data),
   };
 }
 
@@ -95,7 +121,7 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
   }, [chatId]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, replyTo?: ChatMessage | null) => {
       const message = text.trim();
       if (!message || !chatId || !user) {
         return;
@@ -104,6 +130,9 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
       const chatRef = doc(db, "chats", chatId);
       const messagesRef = collection(chatRef, "messages");
       const encrypted = await encryptMessage(message);
+      const replySnippet = replyTo
+        ? await encryptMessage(messageSnippet(replyTo.message))
+        : null;
 
       await addDoc(messagesRef, {
         timestamp: serverTimestamp(),
@@ -112,6 +141,16 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
         photo: user.photo,
         email: user.email,
         displayName: user.displayName,
+        ...(replyTo && replySnippet
+          ? {
+              replyTo: {
+                id: replyTo.id,
+                uid: replyTo.uid,
+                displayName: replyTo.displayName,
+                message: replySnippet,
+              },
+            }
+          : {}),
       });
 
       try {
@@ -120,7 +159,46 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
           lastMessageAt: serverTimestamp(),
           lastMessagePhoto: user.photo,
           lastMessageName: user.displayName,
+          lastMessageUid: user.uid,
         });
+      } catch {
+        // Preview fields are best-effort for older security rules.
+      }
+    },
+    [chatId, user],
+  );
+
+  const editMessage = useCallback(
+    async (messageId: string, text: string) => {
+      const message = text.trim();
+      if (!message || !chatId || !user) {
+        return;
+      }
+
+      const chatRef = doc(db, "chats", chatId);
+      const messageRef = doc(chatRef, "messages", messageId);
+      const encrypted = await encryptMessage(message);
+
+      try {
+        await updateDoc(messageRef, {
+          message: encrypted,
+          editedAt: serverTimestamp(),
+        });
+      } catch {
+        throw new Error("Could not save edit.");
+      }
+
+      try {
+        const latest = await getDocs(
+          query(
+            collection(chatRef, "messages"),
+            orderBy("timestamp", "desc"),
+            limit(1),
+          ),
+        );
+        if (latest.docs[0]?.id === messageId) {
+          await updateDoc(chatRef, { lastMessage: encrypted });
+        }
       } catch {
         // Preview fields are best-effort for older security rules.
       }
@@ -150,6 +228,7 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
             lastMessageAt: null,
             lastMessagePhoto: null,
             lastMessageName: null,
+            lastMessageUid: null,
           });
           return;
         }
@@ -161,6 +240,7 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
           lastMessagePhoto: typeof data.photo === "string" ? data.photo : null,
           lastMessageName:
             typeof data.displayName === "string" ? data.displayName : null,
+          lastMessageUid: typeof data.uid === "string" ? data.uid : null,
         });
       } catch {
         // Preview fields are best-effort for older security rules.
@@ -173,5 +253,12 @@ export function useMessages(chatId: string | null, user: AppUser | null) {
   const loading = Boolean(chatId) && state.chatId !== chatId;
   const error = state.chatId === chatId ? state.error : null;
 
-  return { messages, loading, error, sendMessage, deleteMessage };
+  return {
+    messages,
+    loading,
+    error,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+  };
 }

@@ -8,9 +8,11 @@ import { DeleteChatDialog } from "@/components/chat/delete-chat-dialog";
 import { RenameChatDialog } from "@/components/chat/rename-chat-dialog";
 import { useAdmins } from "@/hooks/use-admins";
 import { useAuth } from "@/hooks/use-auth";
+import { useChatReads } from "@/hooks/use-chat-reads";
 import { filterChats, useChats, useLegacyLastMessages } from "@/hooks/use-chats";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useMessages } from "@/hooks/use-messages";
+import { useVisualViewportRect } from "@/hooks/use-visual-viewport";
 import { SELECTED_CHAT_KEY } from "@/lib/site";
 import type { GroupIconId } from "@/lib/group-icons";
 import type { AppUser } from "@/lib/types";
@@ -26,6 +28,7 @@ function readStoredChatId(): string | null {
 export function ChatApp({ user }: { user: AppUser }) {
   const { signOutUser } = useAuth();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const viewport = useVisualViewportRect();
   const { isAdmin, isOwner, admins, addAdmin, removeAdmin } = useAdmins(user);
   const { chats, loading, error, createChat, deleteChat, renameChat } = useChats(
     user,
@@ -41,11 +44,21 @@ export function ChatApp({ user }: { user: AppUser }) {
   const [selectedId, setSelectedId] = useState<string | null>(readStoredChatId);
 
   useEffect(() => {
-    const previous = history.scrollRestoration;
+    const html = document.documentElement;
+    const { body } = document;
+    const previousOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousRestoration = history.scrollRestoration;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
     history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
+
     return () => {
-      history.scrollRestoration = previous;
+      html.style.overflow = previousOverflow;
+      body.style.overflow = previousBodyOverflow;
+      history.scrollRestoration = previousRestoration;
     };
   }, []);
 
@@ -67,12 +80,14 @@ export function ChatApp({ user }: { user: AppUser }) {
   const selectedChat =
     rooms.find((chat) => chat.id === selectedId) ?? null;
   const activeChatId = selectedChat?.id ?? (loading ? selectedId : null);
+  const unreadIds = useChatReads(user, rooms, activeChatId);
 
   const {
     messages,
     loading: messagesLoading,
     error: messagesError,
     sendMessage,
+    editMessage,
     deleteMessage,
   } = useMessages(selectedChat?.id ?? null, user);
 
@@ -128,7 +143,10 @@ export function ChatApp({ user }: { user: AppUser }) {
   const showChat = isDesktop || Boolean(activeChatId);
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden bg-surface">
+    <div
+      className="fixed inset-x-0 flex min-w-0 overflow-hidden bg-surface"
+      style={{ top: viewport.top, height: viewport.height }}
+    >
       {showSidebar ? (
         <ChatSidebar
           user={user}
@@ -137,6 +155,7 @@ export function ChatApp({ user }: { user: AppUser }) {
           error={error}
           search={search}
           selectedId={activeChatId}
+          unreadIds={unreadIds}
           canCreate={isAdmin}
           onSearch={setSearch}
           onSelect={setSelectedId}
@@ -157,6 +176,7 @@ export function ChatApp({ user }: { user: AppUser }) {
           canManage={isAdmin}
           onBack={() => setSelectedId(null)}
           onSend={sendMessage}
+          onEdit={editMessage}
           onDelete={deleteMessage}
           onRenameChat={() => setRenaming(true)}
           onDeleteChat={() => setDeleting(true)}
